@@ -70,3 +70,44 @@ pre { background: #f7f7f7; padding: 1rem; border-radius: 8px; white-space: pre-w
     color: darkred;
     font-size: 0.9rem;
 }
+
+
+.headline {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    color: royalblue;
+    font-style: italic;
+}
+
+.footer {
+    font-weight: bold;
+    color: royalblue;
+    text-align: center;
+}
+
+.accord-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  align-items: flex-start;
+}
+
+.accord-block {
+  display: inline-block;
+  text-align: center;
+  margin: 0.5rem;
+}
+
+.commentaire {
+  font-size: 0.85rem;
+  color: #555;
+  margin-top: 0.3rem;
+}
+
+.error {
+  color: red;
+  font-size: 0.9rem;
+}
+
+

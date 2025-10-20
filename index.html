@@ -19,6 +19,21 @@
       <input type="number" id="nbSections" min="1" required>
     </label>
 
+    <label>
+      Tuning :
+      <input type="text" id="tuning" required>
+    </label>
+
+    <label>
+      Rythme :
+      <input type="text" id="rythm" required>
+    </label>
+
+    <label>
+      Chanson complète :
+      <input type="text" id="complet" >
+    </label>
+    
     <div id="sectionsContainer"></div>
 
     <button type="submit">Créer la tablature</button>
@@ -74,10 +89,14 @@
         const accordDiv = document.createElement('div');
         accordDiv.className = 'accord';
         accordDiv.innerHTML = `
-          <label>
-            Accord ${j} (6 valeurs séparées par des virgules) :
-            <textarea name="accord_${sectionIndex}_${j}" placeholder="ex: 0,3,2,0,1,0" rows="2"></textarea>
-          </label>
+        <label>
+            Accord ${j} :
+            <textarea name="accord_${sectionIndex}_${j}" placeholder="ex: 034200"></textarea>
+        </label>
+        <label>
+            Commentaire :
+            <input type="text" name="commentaire_${sectionIndex}_${j}" placeholder="ex: arpège doux, rythme rapide">
+        </label>
         `;
         container.appendChild(accordDiv);
       }
@@ -88,8 +107,11 @@
       e.preventDefault();
 
       const titre = document.getElementById('titre').value.trim();
+      const tuning = document.getElementById('tuning').value.trim();
+      const rythm = document.getElementById('rythm').value.trim();
+      const complet = document.getElementById('complet').value.trim();
       const nbSections = parseInt(nbSectionsInput.value);
-      const chanson = { id: Date.now(), titre, sections: [] };
+      const chanson = { id: Date.now(), titre, sections: [], tuning, rythm, complet };
 
       for (let i = 1; i <= nbSections; i++) {
         const sectionName = (form[`sectionName${i}`] && form[`sectionName${i}`].value.trim()) || '';
@@ -97,9 +119,11 @@
         const accords = [];
 
         for (let j = 1; j <= nbAccords; j++) {
-          const val = (form[`accord_${i}_${j}`] && form[`accord_${i}_${j}`].value.trim()) || '';
-          accords.push(val);
+        const accord = form[`accord_${i}_${j}`].value.trim();
+        const commentaire = form[`commentaire_${i}_${j}`]?.value.trim() || '';
+        accords.push({ accord, commentaire });
         }
+
 
         chanson.sections.push({ sectionName, accords });
       }
@@ -221,9 +245,18 @@ function afficherListeChansons() {
     }
 
     output.innerHTML = '';
+    const header = document.createElement('div');
+    header.className = 'headline'
     const title = document.createElement('h3');
     title.textContent = `🎵 ${chanson.titre}`;
-    output.appendChild(title);
+    const tune = document.createElement('h4');
+    const rythm = document.createElement('h4');
+    tune.textContent = `Tuning : ${chanson.tuning}`;
+    rythm.textContent = `Rythm :  ${chanson.rythm} `;
+    header.appendChild(title);
+    header.appendChild(tune);
+    header.appendChild(rythm);
+    output.appendChild(header);
 
     chanson.sections.forEach((s, i) => {
       const sectionBlock = document.createElement('div');
@@ -232,31 +265,46 @@ function afficherListeChansons() {
       const accordsContainer = document.createElement('div');
       accordsContainer.className = 'accord-grid';
 
-      s.accords.forEach((a, j) => {
+        s.accords.forEach((a, j) => {
         const accordBlock = document.createElement('div');
         accordBlock.className = 'accord-block';
 
+        // nom de l’accord
         const accordName = document.createElement('div');
         accordName.className = 'accord-name';
         accordName.textContent = `Accord ${j + 1}`;
         accordBlock.appendChild(accordName);
 
-        const parsedResult = parseAccordString(a);
+        // affichage du diagramme
+        const parsedResult = parseAccordString(a.accord);
         if (parsedResult.ok) {
-          accordBlock.appendChild(CreateAccordTemplate(parsedResult.parsed));
+            accordBlock.appendChild(CreateAccordTemplate(parsedResult.parsed));
         } else {
-          const err = document.createElement('div');
-          err.className = 'error';
-          err.textContent = `Format invalide : ${a}`;
-          accordBlock.appendChild(err);
+            const err = document.createElement('div');
+            err.className = 'error';
+            err.textContent = `Format invalide : ${a.accord}`;
+            accordBlock.appendChild(err);
+        }
+
+        // affichage du commentaire
+        if (a.commentaire) {
+            const comment = document.createElement('div');
+            comment.className = 'commentaire';
+            comment.textContent = `💬 ${a.commentaire}`;
+            accordBlock.appendChild(comment);
         }
 
         accordsContainer.appendChild(accordBlock);
-      });
+        });
+
 
       sectionBlock.appendChild(accordsContainer);
       output.appendChild(sectionBlock);
     });
+    const footer = document.createElement('h4');
+    footer.textContent = `La chanson complète :  ${chanson.complet} `;
+    footer.className = 'footer'
+    output.appendChild(footer);
   }
 
     // CHARGEMENT INITIAL
