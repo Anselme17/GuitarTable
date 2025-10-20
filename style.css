@@ -1,0 +1,72 @@
+
+body { font-family: sans-serif; margin: 2rem; }
+section { border: 1px solid #ccc; padding: 1rem; margin-bottom: 1rem; border-radius: 8px; }
+.accord { margin-left: 1rem; }
+label { display: block; margin-top: 0.5rem; }
+#songsList a { display: block; margin: 0.5rem 0; }
+pre { background: #f7f7f7; padding: 1rem; border-radius: 8px; white-space: pre-wrap; }
+
+/* STYLE DU DIAGRAMME D’ACCORDS */
+.accord-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    align-items: flex-start;
+}
+
+.accord-block {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-bottom: 1rem;
+}
+
+.accord-name {
+    font-weight: bold;
+    margin-bottom: 0.25rem;
+    text-align: center;
+}
+
+.diagramme {
+    display: inline-block;
+    border-collapse: collapse;
+}
+
+.diagramme td {
+    width: 25px;
+    height: 25px;
+    border: 1px solid #444;
+    text-align: center;
+    vertical-align: middle;
+    position: relative;
+}
+
+.dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: black;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+}
+
+.open {
+    font-size: 10px;
+    color: green;
+}
+
+.muted {
+    font-size: 10px;
+    color: red;
+}
+
+.topline td {
+    border: none;
+}
+
+.error {
+    color: darkred;
+    font-size: 0.9rem;
+}

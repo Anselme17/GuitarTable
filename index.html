@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <title>Guitar Table Creator</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <h1>Créateur de Tablature</h1>
+
+  <form id="tabForm">
+    <label>
+      Titre de la chanson :
+      <input type="text" id="titre" required>
+    </label>
+
+    <label>
+      Nombre de sections :
+      <input type="number" id="nbSections" min="1" required>
+    </label>
+
+    <div id="sectionsContainer"></div>
+
+    <button type="submit">Créer la tablature</button>
+  </form>
+
+  <h2>Chansons enregistrées</h2>
+  <div id="songsList"></div>
+
+  <hr>
+  <h2>Prévisualisation de la tablature</h2>
+  <div id="output"></div>
+
+  <script>
+    const nbSectionsInput = document.getElementById('nbSections');
+    const sectionsContainer = document.getElementById('sectionsContainer');
+    const form = document.getElementById('tabForm');
+    const output = document.getElementById('output');
+    const songsList = document.getElementById('songsList');
+
+    // FORMULAIRE DYNAMIQUE
+    nbSectionsInput.addEventListener('input', () => {
+      const nb = parseInt(nbSectionsInput.value) || 0;
+      sectionsContainer.innerHTML = '';
+      for (let i = 1; i <= nb; i++) {
+        const sectionDiv = document.createElement('section');
+        sectionDiv.innerHTML = `
+          <h3>Section ${i}</h3>
+          <label>
+            Nom de la section :
+            <input type="text" name="sectionName${i}" placeholder="ex: Couplet, Refrain">
+          </label>
+          <label>
+            Nombre d'accords :
+            <input type="number" min="1" name="nbAccords${i}" data-section="${i}">
+          </label>
+          <div class="accordsContainer" id="accordsContainer${i}"></div>
+        `;
+        sectionsContainer.appendChild(sectionDiv);
+      }
+
+      // (re)attacher écouteurs
+      sectionsContainer.querySelectorAll('input[name^="nbAccords"]').forEach(input => {
+        input.addEventListener('input', handleAccordsChange);
+      });
+    });
+
+    function handleAccordsChange(e) {
+      const nb = parseInt(e.target.value) || 0;
+      const sectionIndex = e.target.dataset.section;
+      const container = document.getElementById(`accordsContainer${sectionIndex}`);
+      container.innerHTML = '';
+      for (let j = 1; j <= nb; j++) {
+        const accordDiv = document.createElement('div');
+        accordDiv.className = 'accord';
+        accordDiv.innerHTML = `
+          <label>
+            Accord ${j} (6 valeurs séparées par des virgules) :
+            <textarea name="accord_${sectionIndex}_${j}" placeholder="ex: 0,3,2,0,1,0" rows="2"></textarea>
+          </label>
+        `;
+        container.appendChild(accordDiv);
+      }
+    }
+
+    // SOUMISSION DU FORMULAIRE (sauvegarde)
+    form.addEventListener('submit', (e) => {
+      e.preventDefault();
+
+      const titre = document.getElementById('titre').value.trim();
+      const nbSections = parseInt(nbSectionsInput.value);
+      const chanson = { id: Date.now(), titre, sections: [] };
+
+      for (let i = 1; i <= nbSections; i++) {
+        const sectionName = (form[`sectionName${i}`] && form[`sectionName${i}`].value.trim()) || '';
+        const nbAccords = parseInt(form[`nbAccords${i}`] && form[`nbAccords${i}`].value) || 0;
+        const accords = [];
+
+        for (let j = 1; j <= nbAccords; j++) {
+          const val = (form[`accord_${i}_${j}`] && form[`accord_${i}_${j}`].value.trim()) || '';
+          accords.push(val);
+        }
+
+        chanson.sections.push({ sectionName, accords });
+      }
+
+      const saved = JSON.parse(localStorage.getItem('chansons') || '[]');
+      saved.push(chanson);
+      localStorage.setItem('chansons', JSON.stringify(saved));
+
+      afficherListeChansons();
+      form.reset();
+      sectionsContainer.innerHTML = '';
+    });
+
+    // LISTE DES CHANSONS
+function afficherListeChansons() {
+  const saved = JSON.parse(localStorage.getItem('chansons') || '[]');
+  songsList.innerHTML = '';
+
+  if (saved.length === 0) {
+    songsList.textContent = 'Aucune chanson enregistrée.';
+    return;
+  }
+
+  saved.forEach(chanson => {
+    const container = document.createElement('div');
+    container.style.display = 'flex';
+    container.style.alignItems = 'center';
+    container.style.marginBottom = '0.5rem';
+
+    const link = document.createElement('a');
+    link.href = `?id=${chanson.id}`;
+    link.textContent = chanson.titre || '(titre vide)';
+    link.style.marginRight = '1rem';
+    link.addEventListener('click', (e) => {
+      e.preventDefault();
+      afficherTablature(chanson.id);
+    });
+
+    const btn = document.createElement('button');
+    btn.textContent = 'Supprimer';
+    btn.style.fontSize = '0.8rem';
+    btn.addEventListener('click', () => {
+      // Supprimer la chanson du localStorage
+      const updated = saved.filter(c => c.id !== chanson.id);
+      localStorage.setItem('chansons', JSON.stringify(updated));
+      afficherListeChansons();
+      // Effacer la tablature affichée si c'était celle supprimée
+      const params = new URLSearchParams(window.location.search);
+      if (params.get('id') == chanson.id.toString()) {
+        output.innerHTML = '';
+      }
+    });
+
+    container.appendChild(link);
+    container.appendChild(btn);
+    songsList.appendChild(container);
+  });
+}
+
+  // === DIAGRAMME D’ACCORD ===
+  function CreateAccordTemplate(parsedArray) {
+    const table = document.createElement('table');
+    table.className = 'diagramme';
+    const rows = 4;
+    const cols = 6;
+
+    // Ligne du haut (O / X)
+    const top = document.createElement('tr');
+    top.className = 'topline';
+    for (let i = 0; i < cols; i++) {
+      const td = document.createElement('td');
+      const val = parsedArray[i];
+      if (val === 0) td.innerHTML = '<span class="open">O</span>';
+      else if (val !== null && val < 0) td.innerHTML = '<span class="muted">X</span>';
+      else td.innerHTML = '&nbsp;';
+      top.appendChild(td);
+    }
+    table.appendChild(top);
+
+    // Frettes 1–4
+    for (let f = 1; f <= rows; f++) {
+      const tr = document.createElement('tr');
+      for (let c = 0; c < cols; c++) {
+        const td = document.createElement('td');
+        const val = parsedArray[c];
+        if (val !== null && val === f) {
+          const dot = document.createElement('div');
+          dot.className = 'dot';
+          td.appendChild(dot);
+        }
+        tr.appendChild(td);
+      }
+      table.appendChild(tr);
+    }
+
+    return table;
+  }
+
+  // === PARSE ACCORD ===
+  function parseAccordString(str) {
+    if (!str || typeof str !== 'string') return { ok: false, parsed: [] };
+    const normalized = str.replace(/[;|\s]+/g, ',');
+    const parts = normalized.split(',').map(p => p.trim()).filter(p => p !== '');
+    const parsed = parts.map(p => {
+      const n = Number(p);
+      return Number.isFinite(n) ? n : null;
+    });
+    if (parsed.length !== 6 || parsed.some(v => v === null)) return { ok: false, parsed };
+    return { ok: true, parsed };
+  }
+
+  // === AFFICHAGE TABLATURE ===
+  function afficherTablature(id) {
+    const saved = JSON.parse(localStorage.getItem('chansons') || '[]');
+    const chanson = saved.find(c => c.id == id);
+    if (!chanson) {
+      output.textContent = 'Chanson introuvable.';
+      return;
+    }
+
+    output.innerHTML = '';
+    const title = document.createElement('h3');
+    title.textContent = `🎵 ${chanson.titre}`;
+    output.appendChild(title);
+
+    chanson.sections.forEach((s, i) => {
+      const sectionBlock = document.createElement('div');
+      sectionBlock.innerHTML = `<h4>Section ${i + 1} : ${s.sectionName || '(sans nom)'}</h4>`;
+
+      const accordsContainer = document.createElement('div');
+      accordsContainer.className = 'accord-grid';
+
+      s.accords.forEach((a, j) => {
+        const accordBlock = document.createElement('div');
+        accordBlock.className = 'accord-block';
+
+        const accordName = document.createElement('div');
+        accordName.className = 'accord-name';
+        accordName.textContent = `Accord ${j + 1}`;
+        accordBlock.appendChild(accordName);
+
+        const parsedResult = parseAccordString(a);
+        if (parsedResult.ok) {
+          accordBlock.appendChild(CreateAccordTemplate(parsedResult.parsed));
+        } else {
+          const err = document.createElement('div');
+          err.className = 'error';
+          err.textContent = `Format invalide : ${a}`;
+          accordBlock.appendChild(err);
+        }
+
+        accordsContainer.appendChild(accordBlock);
+      });
+
+      sectionBlock.appendChild(accordsContainer);
+      output.appendChild(sectionBlock);
+    });
+  }
+
+    // CHARGEMENT INITIAL
+    afficherListeChansons();
+
+    // si url ?id=..., afficher directement
+    const params = new URLSearchParams(window.location.search);
+    if (params.has('id')) {
+      afficherTablature(params.get('id'));
+    }
+
+    // DEBUG UTILE : expose parseAccordString dans console pour tests
+    window.__parseAccordString = parseAccordString;
+  </script>
+</body>
+</html>
